@@ -1,0 +1,66 @@
+version: '2'
+# ************ README ****************
+# Requires docker-compose version 1.7+
+# ************************************
+
+# Setup
+# Up: docker-compose up
+# Down: docker-compose down
+
+# Create a graphana db
+# docker exec -it maker-event-influxdb /bin/bash
+# $> influx
+# $> CREATE DATABASE maker_eventdb
+
+# Mosquitto spy all
+# docker exec -it maker-event-broker sh
+# $> mosquitto_sub -h localhost -t '#' -v
+
+
+services:
+  node-red:
+    container_name: maker-event-nodered
+    image: nodered/node-red-docker
+    ports:
+      - 1880:1880
+    links:
+      - broker:maker-event-broker
+      - influx:maker-event-influxdb
+    networks:
+      - maker-event-network
+  broker:
+    image: library/eclipse-mosquitto
+    container_name: maker-event-broker
+    ports:
+      - 1883:1883
+      - 9001:9001
+    expose:
+      - 1883
+    networks:
+      - maker-event-network
+
+  graphana:
+    image: grafana/grafana
+    container_name: maker-event-graphana
+    ports:
+      - 3000:3000
+    expose:
+      - 3000
+    links:
+      - influx:maker-event-influxdb
+    networks:
+      - maker-event-network
+
+  influx:
+    image: library/influxdb
+    container_name: maker-event-influxdb
+    ports:
+      - 8086:8086
+    expose:
+      - 8086
+    networks:
+      - maker-event-network
+
+networks:
+  maker-event-network:
+    driver: bridge
